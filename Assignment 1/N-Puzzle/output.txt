@@ -1,0 +1,3 @@
+Action: ['Down', 'Right', 'Up', 'Up', 'Left', 'Down', 'Down', 'Right', 'Up', 'Up', 'Right', 'Down', 'Left', 'Left', 'Up', 'Right', 'Down', 'Down', 'Right', 'Up', 'Up', 'Left', 'Down', 'Right', 'Down', 'Left', 'Up', 'Left', 'Up', 'Right', 'Right', 'Down', 'Down']
+Number of explored nodes is: 40316
+Time: 0.9031 second
