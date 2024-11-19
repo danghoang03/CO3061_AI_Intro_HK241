@@ -1,0 +1,13 @@
+Requirements:
+    pygame (library)
+
+Could you need to setup env to run code:
+Setup Python Virtual Environment in VSCode to running code
+1. python -m venv my_env
+2. source my_env/bin/activate (for MacOS) or my_env\Scripts\activate (for Windows)
+3. Install library
+Ex: pip install pygame
+
+Run code:
+python3 -u main.py
+
