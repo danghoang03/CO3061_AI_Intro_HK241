@@ -234,12 +234,12 @@ def count_solutions(sudoku):
 def solve_and_count(sudoku, count):
     for i in range(81):
         if sudoku[i].returnSolved() == 0:
-            # row, col = i // 9, i % 9
+            row, col = i // 9, i % 9
             for num in range(1, 10):
-                # if is_valid(sudoku, row, col, num):
-                sudoku[i].setAnswer(num)
-                count = solve_and_count(sudoku, count)
-                sudoku[i].reset()
+                if is_valid(sudoku, row, col, num):
+                    sudoku[i].setAnswer(num)
+                    count = solve_and_count(sudoku, count)
+                    sudoku[i].reset()
             return count
     return count + 1
 
