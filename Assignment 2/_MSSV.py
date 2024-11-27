@@ -1,7 +1,10 @@
 import numpy as np
 from state import *
 import random
+import time
 
+agent_time = 0  # Tổng thời gian agent đã dùng (tính bằng giây)
+MAX_AGENT_TIME = 120  # Thời gian tối đa cho cả ván đấu
 
 # Kiểm tra điều kiện thắng trên bảng
 def check_win(board):
@@ -189,19 +192,40 @@ def evaluation_state(state):
 
     return score
 
+def order_moves(state, valid_moves):
+    move_scores = []
+    for move in valid_moves:
+        local_board = state.blocks[move.index_local_board]
+        move_score = evaluate_position(local_board, move.x, move.y, move.value)
+        move_scores.append((move, move_score))
 
-def minimax(state, depth, alpha, beta):
-    if state.game_over or depth == 0:
+    # Nếu là lượt của X (1), ưu tiên bước đi với điểm cao nhất; nếu là O (-1), ưu tiên điểm thấp nhất.
+    if state.player_to_move == state.X:
+        move_scores.sort(key=lambda x: -x[1])  # Giảm dần
+    else:
+        move_scores.sort(key=lambda x: x[1])  # Tăng dần
+
+    # Trả về danh sách bước đi đã sắp xếp
+    return [move for move, score in move_scores]
+
+
+
+def minimax(state, depth, alpha, beta, start_time):
+    if state.game_over or depth == 0 or time.time() - start_time > 9:
         return evaluation_state(state)
 
     valid_moves = state.get_valid_moves
+    ordered_moves = order_moves(state, valid_moves)
+     
     if state.player_to_move == state.X:
         max_utility = -float('inf')
-        for move in valid_moves:
+        for move in ordered_moves:
+            if time.time() - start_time > 9:
+                break
             child_state = State(state)
             child_state.free_move = state.free_move
             child_state.act_move(move)
-            utility = minimax(child_state, depth - 1, alpha, beta)
+            utility = minimax(child_state, depth - 1, alpha, beta, start_time)
             if utility > max_utility:
                 max_utility = utility
             if max_utility > alpha:
@@ -211,11 +235,13 @@ def minimax(state, depth, alpha, beta):
         return alpha
     else:
         min_utility = float('inf')
-        for move in valid_moves:
+        for move in ordered_moves:
+            if time.time() - start_time > 9:
+                break
             child_state = State(state)
             child_state.free_move = state.free_move
             child_state.act_move(move)
-            utility = minimax(child_state, depth - 1, alpha, beta)
+            utility = minimax(child_state, depth - 1, alpha, beta, start_time)
             if utility < min_utility:
                 min_utility = utility
             if min_utility < beta:
@@ -229,6 +255,9 @@ numMoves = 0
 
 
 def select_move(cur_state, remain_time):
+    global agent_time
+    start_time = time.time()
+    
     valid_moves = cur_state.get_valid_moves
     if len(valid_moves) == 0:
         return None
@@ -244,60 +273,71 @@ def select_move(cur_state, remain_time):
 
     if numMoves == 0 and cur_state.player_to_move == cur_state.X:
         numMoves += 1
+        agent_time += time.time() - start_time
         return UltimateTTT_Move(4, 1, 1, cur_state.X)
-
+    
+    ordered_moves = order_moves(cur_state, valid_moves)
     scores = np.zeros(len(valid_moves))
-    for i in range(len(valid_moves)):
-        scores[i] += evaluate_position(cur_state.blocks[valid_moves[i].index_local_board], valid_moves[i].x,
-                                            valid_moves[i].y, valid_moves[i].value) * 45
+    
+    time_left = MAX_AGENT_TIME - agent_time
+    if time_left < 10:  
+        depth = 2
+    elif time_left < 30:
+        depth = 3
+    elif numMoves < 14: 
+        if cur_state.free_move is True:
+            depth = 2
+        else:
+            depth = 3
+    elif numMoves < 20:
+        if cur_state.free_move is True:
+            depth = 3
+        else:
+            depth = 4
+    else:
+        if cur_state.free_move is True:
+            depth = 4
+        else:
+            depth = 5
+    
+    for i, move in enumerate(ordered_moves):
+        scores[i] += evaluate_position(cur_state.blocks[move.index_local_board], move.x, move.y, move.value) * 45
 
-    for i in range(len(valid_moves)):
+    for i, move in enumerate(ordered_moves):
+        time_spent = time.time() - start_time
+        if time_spent > 9:
+            break
         child_state = None
         if type(cur_state) is State:
             child_state = State(cur_state)
         else:
             child_state = State_2(cur_state)
         child_state.free_move = cur_state.free_move
-        child_state.act_move(valid_moves[i])
+        child_state.act_move(move)
 
-        utility = 0
         alpha = -float('inf')
         beta = float('inf')
-        if numMoves < 14:
-            if cur_state.free_move is True:
-                utility = minimax(child_state, 2, alpha, beta)
-            else:
-                utility = minimax(child_state, 3, alpha, beta)
-        elif numMoves < 20:
-            if cur_state.free_move is True:
-                utility = minimax(child_state, 3, alpha, beta)
-            else:
-                utility = minimax(child_state, 4, alpha, beta)
-        else:
-            if cur_state.free_move is True:
-                utility = minimax(child_state, 4, alpha, beta)
-            else:
-                utility = minimax(child_state, 5, alpha, beta)
+        utility = minimax(child_state, depth, alpha, beta, start_time)
 
         scores[i] += utility
     
     best_move = None
     if valid_moves[0].value == 1:
         best_score = -float('inf')
-        for i in range(len(valid_moves)):
+        for i, move in enumerate(ordered_moves):
             if scores[i] > best_score:
                 best_score = scores[i]
-                best_move = [valid_moves[i]]
+                best_move = [move]
             elif scores[i] == best_score:
-                best_move.append(valid_moves[i])
+                best_move.append(move)
     else:
         best_score = float('inf')
-        for i in range(len(valid_moves)):
+        for i, move in enumerate(ordered_moves):
             if scores[i] < best_score:
                 best_score = scores[i]
-                best_move = [valid_moves[i]]
+                best_move = [move]
             elif scores[i] == best_score:
-                best_move.append(valid_moves[i])
+                best_move.append(move)
 
     numMoves += 1
     return random.choice(best_move)
