@@ -163,7 +163,9 @@ def play_auto(player_X, player_O, rule = 1):
         state.act_move(new_move)
         turn += 1
     
-play_auto('_MSSV_2', '_MSSV', 2)
+# play_auto('_MSSV_2', '_MSSV', 2)
 # play_auto('_MSSV', '_MSSV_2', 2)
 # play_auto('random_agent', '_MSSV', 2)
+# play_auto('move', '_MSSV', 2)
+play_auto('move', 'random_agent', 2)
 # play_step_by_step('random_agent', '_MSSV', 2)
